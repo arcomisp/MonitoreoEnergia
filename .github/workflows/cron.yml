@@ -1,0 +1,34 @@
+name: Tuya Energy Logger
+
+on:
+  schedule:
+    - cron: '*/30 * * * *' # Se ejecuta cada 30 minutos
+  workflow_dispatch: # Permite probarlo a mano cuando quieras
+
+jobs:
+  run-logger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Instalar dependencias
+        run: pip install -r requisitos.txt
+
+      - name: Ejecutar script de captura
+        env:
+          API_ID: ${{ secrets.TUYA_API_ID }}
+          API_SECRET: ${{ secrets.TUYA_API_SECRET }}
+          DEVICE_ID: ${{ secrets.TUYA_DEVICE_ID }}
+        run: python registrador.py
+
+      - name: Guardar cambios en el CSV
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'Actualización automática del historial energético'
+          file_pattern: 'historico_energia.csv'
