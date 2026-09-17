@@ -640,11 +640,13 @@
 
     // Chart geometry
     var W = 560, H = 220, padL = 44, padR = 12, padT = 16, padB = 28;
-    var minW = Math.min.apply(null, readings.map(function (r) { return r.watts; }));
-    var maxW = Math.max.apply(null, readings.map(function (r) { return r.watts; }));
+    var dataMinW = Math.min.apply(null, readings.map(function (r) { return r.watts; }));
+    var dataMaxW = Math.max.apply(null, readings.map(function (r) { return r.watts; }));
+    var minW = dataMinW, maxW = dataMaxW;
     if (minW === maxW) { minW -= 1; maxW += 1; }
     var span = maxW - minW;
     minW -= span * 0.15; maxW += span * 0.15;
+    if (dataMinW >= 0) minW = Math.max(minW, 0);
 
     var t0 = new Date(readings[0].ts).getTime();
     var t1 = new Date(readings[readings.length - 1].ts).getTime();
