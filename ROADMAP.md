@@ -134,6 +134,42 @@ y los costos de Tuya/eWeLink se vuelven un problema real, evaluar la
 Opción B — no como punto de partida, porque implica mucho hardware y
 operación antes de validar si el negocio funciona.
 
+#### Estimación de costos de la Opción C
+
+Investigado el 17-sep-2026. Se separa lo estimable con confianza (la
+infraestructura propia) de lo que requiere cotización real (Tuya/eWeLink).
+
+**Infraestructura propia** (escala inicial: cientos a pocos miles de usuarios):
+
+| Servicio | Costo estimado |
+|---|---|
+| Base de datos (Supabase Pro, series de tiempo) | $25/mes |
+| Backend/API (Railway o similar) | $5-20/mes |
+| Dominio propio (opcional) | ~$1/mes amortizado |
+| **Total infra propia** | **~$30-50/mes para arrancar** |
+
+Esto escala gradualmente — Supabase Pro cubre cómodamente hasta el orden
+de decenas/cientos de miles de usuarios activos antes de necesitar
+planes más caros (Team a $599/mes).
+
+**Costo de Tuya/eWeLink: no estimable con confianza.** La variabilidad
+encontrada es enorme:
+- Mención de un plan básico de IoT Core desde ~$0.20/mes (posiblemente
+  por dispositivo, pero la fuente no aclara la unidad con precisión).
+- Caso real reportado en el foro de Home Assistant: a un desarrollador,
+  al terminar su prueba gratuita, le cotizaron **USD 25.000/año** por la
+  edición "Flagship" de Tuya Cloud.
+
+Esa diferencia (de centavos a decenas de miles de dólares) confirma que
+depende totalmente del plan/tier según volumen de dispositivos y
+funcionalidades — no hay tarifa estándar publicada. La Fase 0
+(contactar ventas de Tuya) sigue siendo el paso obligatorio antes de
+poder armar un presupuesto real.
+
+Fuentes: [Membership and fees — Tuya Support](https://support.tuya.com/en/help/_list?category=751038),
+[Cost of Tuya Cloud — Home Assistant Community](https://community.home-assistant.io/t/cost-of-tuya-cloud/571623),
+[Supabase Pricing 2026](https://makerkit.dev/blog/saas/supabase-pricing).
+
 ## v2 — Camino a IA real (a futuro)
 
 1. **Más historia**: acumular semanas/meses de datos para que un modelo
