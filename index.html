@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitor de Consumo</title>
+<meta name="description" content="Consumo electrico en vivo del dispositivo Tuya monitoreado por MonitoreoEnergia.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --surface: #ffffff;
+    --surface-alt: #efe9de;
+    --border: #e3dbcb;
+    --ink: #24211b;
+    --ink-secondary: #6c6255;
+    --ink-muted: #9c9484;
+    --accent: #a85a1e;
+    --accent-soft: #a85a1e22;
+    --accent-soft-strong: #a85a1e3d;
+    --good: #3f7d4a;
+    --shadow: 0 1px 2px rgba(36, 33, 27, 0.04), 0 8px 24px -12px rgba(36, 33, 27, 0.18);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16140f;
+      --surface: #1e1b15;
+      --surface-alt: #262119;
+      --border: #383222;
+      --ink: #f1ece1;
+      --ink-secondary: #b6ac98;
+      --ink-muted: #7c7566;
+      --accent: #e5a35a;
+      --accent-soft: #e5a35a26;
+      --accent-soft-strong: #e5a35a45;
+      --good: #7fbf8a;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #16140f;
+    --surface: #1e1b15;
+    --surface-alt: #262119;
+    --border: #383222;
+    --ink: #f1ece1;
+    --ink-secondary: #b6ac98;
+    --ink-muted: #7c7566;
+    --accent: #e5a35a;
+    --accent-soft: #e5a35a26;
+    --accent-soft-strong: #e5a35a45;
+    --good: #7fbf8a;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    padding-inline: 20px;
+    padding-block: 32px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .page {
+    width: 100%;
+    max-width: 640px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  h1, h2, .num {
+    text-wrap: balance;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  h1 {
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 600;
+    font-size: 1.7rem;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .chip {
+    font-size: 0.72rem;
+    color: var(--ink-secondary);
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 24px;
+  }
+
+  .eyebrow {
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin: 0 0 10px;
+  }
+
+  .stat-row {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    flex: 1 1 180px;
+  }
+
+  .hero {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .hero-value {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .num {
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 3.4rem;
+    line-height: 1;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .num.secondary {
+    font-size: 2.1rem;
+    color: var(--ink);
+  }
+
+  .unit {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 1.2rem;
+    color: var(--ink-secondary);
+  }
+
+  .divider-v {
+    width: 1px;
+    align-self: stretch;
+    background: var(--border);
+  }
+
+  .status-row {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .sync-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: -8px;
+  }
+
+  .sync-msg {
+    font-size: 0.78rem;
+    color: var(--ink-muted);
+  }
+
+  .sync-msg.error { color: #c0442c; }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .sync-msg.error { color: #ef8a72; }
+  }
+  :root[data-theme="dark"] .sync-msg.error { color: #ef8a72; }
+
+  .refresh-btn {
+    font-family: inherit;
+    font-size: 0.78rem;
+    color: var(--accent);
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 14px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .refresh-btn:active { transform: scale(0.97); }
+  .refresh-btn:disabled { opacity: 0.6; cursor: default; }
+
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--ink-secondary);
+  }
+
+  .status .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--good);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 22%, transparent);
+  }
+
+  .meta {
+    margin-top: 6px;
+    font-size: 0.84rem;
+    color: var(--ink-secondary);
+  }
+
+  h2 {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+
+  .section-sub {
+    font-size: 0.82rem;
+    color: var(--ink-secondary);
+    margin: 0 0 16px;
+  }
+
+  .empty-trend {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+    padding: 28px 12px;
+    color: var(--ink-secondary);
+    background: var(--surface-alt);
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+  }
+
+  .empty-trend svg { color: var(--ink-muted); }
+
+  .empty-trend strong { color: var(--ink); font-weight: 600; }
+
+  .empty-trend p { margin: 0; font-size: 0.85rem; max-width: 34ch; }
+
+  .chart-wrap { position: relative; }
+
+  .chart-wrap svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+  .axis-label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 9px;
+    fill: var(--ink-muted);
+  }
+
+  .gridline { stroke: var(--border); stroke-width: 1; }
+
+  .trend-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .trend-area { fill: url(#areaFade); }
+
+  .endpoint {
+    fill: var(--accent);
+    stroke: var(--surface);
+    stroke-width: 2;
+  }
+
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--ink);
+    color: var(--surface);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    padding: 6px 9px;
+    border-radius: 8px;
+    white-space: nowrap;
+    transform: translate(-50%, -130%);
+    opacity: 0;
+    transition: opacity 0.1s ease;
+    z-index: 2;
+  }
+
+  .crosshair {
+    stroke: var(--ink-muted);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+    opacity: 0;
+  }
+
+  .hover-target { fill: transparent; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+  }
+
+  th {
+    text-align: left;
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    font-weight: 600;
+    padding-block: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding-block: 9px;
+    border-bottom: 1px solid var(--border);
+    color: var(--ink-secondary);
+  }
+
+  td:nth-child(n+2), th:nth-child(n+2) {
+    text-align: right;
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  th:nth-child(n+2) { color: var(--ink-muted); }
+
+  tr:last-child td { border-bottom: none; }
+
+  .table-scroll { overflow-x: auto; overflow-y: auto; max-height: 320px; }
+
+  thead th { position: sticky; top: 0; background: var(--surface); }
+
+  footer {
+    font-size: 0.78rem;
+    color: var(--ink-muted);
+    text-align: center;
+    line-height: 1.5;
+    padding-block: 4px 8px;
+  }
+
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>Monitor de Consumo</h1>
+    <span class="chip">Tuya &middot; MonitoreoEnergia &middot; cada 5 min</span>
+  </header>
+
+  <div class="sync-row">
+    <span class="sync-msg" id="syncMsg">Cargando datos en vivo desde GitHub&hellip;</span>
+    <button class="refresh-btn" id="refreshBtn" type="button">&#8635; Actualizar</button>
+  </div>
+
+  <div class="card">
+    <div class="status-row">
+      <span class="status"><span class="dot"></span>github-actions &middot; cron.yml</span>
+    </div>
+    <div class="stat-row">
+      <div class="stat">
+        <p class="eyebrow">Ultima lectura</p>
+        <div class="hero-value">
+          <span class="num" id="heroValue">&mdash;</span>
+          <span class="unit">W</span>
+        </div>
+      </div>
+      <div class="divider-v"></div>
+      <div class="stat">
+        <p class="eyebrow">Consumo acumulado</p>
+        <div class="hero-value">
+          <span class="num secondary" id="heroKwh">&mdash;</span>
+          <span class="unit">kWh</span>
+        </div>
+      </div>
+    </div>
+    <p class="meta" id="heroMeta"></p>
+  </div>
+
+  <div class="card">
+    <h2>Tendencia</h2>
+    <p class="section-sub">Potencia registrada a lo largo del tiempo.</p>
+    <div id="trendHost"></div>
+  </div>
+
+  <div class="card">
+    <h2>Historial de lecturas</h2>
+    <p class="section-sub" id="historySub"></p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Fecha y hora</th><th>Potencia (W)</th><th>Acumulado (kWh)</th></tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    Datos reales del CSV <code>historico_energia.csv</code> en <code>arcomisp/MonitoreoEnergia</code>, actualizados el 17 sep 2026.
+    El histórico viejo viene de los logs de Tuya (~cada hora); desde hoy el cron agrega una lectura nueva cada 5 minutos.
+    El servidor guarda los timestamps en UTC; este panel los convierte a tu hora local automáticamente.
+  </footer>
+</div>
+
+<script>
+(function () {
+  var CSV_URL = "https://raw.githubusercontent.com/arcomisp/MonitoreoEnergia/main/historico_energia.csv";
+
+  var syncMsg = document.getElementById("syncMsg");
+  var refreshBtn = document.getElementById("refreshBtn");
+
+  function parseCSV(text) {
+    var lines = text.trim().split(/\r?\n/);
+    var readings = [];
+    for (var i = 1; i < lines.length; i++) {
+      var parts = lines[i].split(",");
+      if (parts.length < 3) continue;
+      var watts = parseFloat(parts[1]);
+      var kwh = parseFloat(parts[2]);
+      if (isNaN(watts) || isNaN(kwh)) continue;
+      readings.push({ ts: parts[0].trim().replace(" ", "T") + "Z", watts: watts, kwh: kwh });
+    }
+    return readings;
+  }
+
+  function fmtDateTime(iso) {
+    var d = new Date(iso);
+    return d.toLocaleString("es", {
+      day: "2-digit", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit"
+    });
+  }
+  function fmtTime(iso) {
+    var d = new Date(iso);
+    return d.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
+  }
+  function fmtDay(iso) {
+    var d = new Date(iso);
+    return d.toLocaleDateString("es", { day: "2-digit", month: "short" });
+  }
+  function fmtNow() {
+    return new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  }
+
+  function render(readings) {
+    var last = readings[readings.length - 1];
+    document.getElementById("heroValue").textContent = last.watts.toFixed(1);
+    document.getElementById("heroKwh").textContent = last.kwh.toFixed(2);
+    document.getElementById("heroMeta").textContent = "Registrado el " + fmtDateTime(last.ts) + " (tu hora local)";
+    document.getElementById("historySub").textContent =
+      readings.length + " lecturas, desde " + fmtDateTime(readings[0].ts) + " hasta " + fmtDateTime(last.ts) + ".";
+
+    var tbody = document.getElementById("historyBody");
+    tbody.innerHTML = "";
+    readings.slice().reverse().forEach(function (r) {
+      var tr = document.createElement("tr");
+      var t1 = document.createElement("td");
+      t1.textContent = fmtDateTime(r.ts);
+      var t2 = document.createElement("td");
+      t2.textContent = r.watts.toFixed(1);
+      var t3 = document.createElement("td");
+      t3.textContent = r.kwh.toFixed(2);
+      tr.appendChild(t1); tr.appendChild(t2); tr.appendChild(t3);
+      tbody.appendChild(tr);
+    });
+
+    var host = document.getElementById("trendHost");
+
+    if (readings.length < 2) {
+      host.innerHTML =
+        '<div class="empty-trend">' +
+        '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 17l5-5 4 4 8-9" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        '<p><strong>Todavia no hay tendencia que mostrar.</strong><br>Se necesitan al menos 2 lecturas. Actualiza mas tarde, cuando el cron haya corrido de nuevo.</p>' +
+        '</div>';
+      return;
+    }
+
+    // Chart geometry
+    var W = 560, H = 220, padL = 44, padR = 12, padT = 16, padB = 28;
+    var minW = Math.min.apply(null, readings.map(function (r) { return r.watts; }));
+    var maxW = Math.max.apply(null, readings.map(function (r) { return r.watts; }));
+    if (minW === maxW) { minW -= 1; maxW += 1; }
+    var span = maxW - minW;
+    minW -= span * 0.15; maxW += span * 0.15;
+
+    var t0 = new Date(readings[0].ts).getTime();
+    var t1 = new Date(readings[readings.length - 1].ts).getTime();
+    var tSpan = Math.max(t1 - t0, 1);
+
+    function x(r) { return padL + ((new Date(r.ts).getTime() - t0) / tSpan) * (W - padL - padR); }
+    function y(r) { return padT + (1 - (r.watts - minW) / (maxW - minW)) * (H - padT - padB); }
+
+    var pathD = readings.map(function (r, i) { return (i === 0 ? "M" : "L") + x(r).toFixed(1) + "," + y(r).toFixed(1); }).join(" ");
+    var areaD = pathD + " L" + x(readings[readings.length - 1]).toFixed(1) + "," + (H - padB) + " L" + x(readings[0]).toFixed(1) + "," + (H - padB) + " Z";
+
+    var yTicks = 4, gridLines = "", axisLabelsY = "";
+    for (var i = 0; i <= yTicks; i++) {
+      var val = minW + (maxW - minW) * (i / yTicks);
+      var gy = padT + (1 - i / yTicks) * (H - padT - padB);
+      gridLines += '<line class="gridline" x1="' + padL + '" x2="' + (W - padR) + '" y1="' + gy.toFixed(1) + '" y2="' + gy.toFixed(1) + '"/>';
+      axisLabelsY += '<text class="axis-label" x="' + (padL - 8) + '" y="' + (gy + 3).toFixed(1) + '" text-anchor="end">' + val.toFixed(0) + '</text>';
+    }
+
+    var multiDay = tSpan > 36 * 3600 * 1000;
+    var xLabels = "";
+    var xCount = Math.min(readings.length, 5);
+    for (var j = 0; j < xCount; j++) {
+      var idx = Math.round((readings.length - 1) * (j / (xCount - 1 || 1)));
+      var r = readings[idx];
+      var label = multiDay ? fmtDay(r.ts) : fmtTime(r.ts);
+      xLabels += '<text class="axis-label" x="' + x(r).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle">' + label + '</text>';
+    }
+
+    var svg =
+      '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Tendencia de potencia en vatios">' +
+      '<defs><linearGradient id="areaFade" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0%" stop-color="var(--accent-soft-strong)"/>' +
+      '<stop offset="100%" stop-color="var(--accent-soft)" stop-opacity="0"/>' +
+      '</linearGradient></defs>' +
+      gridLines + axisLabelsY + xLabels +
+      '<path class="trend-area" d="' + areaD + '"/>' +
+      '<path class="trend-line" d="' + pathD + '"/>' +
+      '<circle class="endpoint" r="4" cx="' + x(readings[readings.length - 1]).toFixed(1) + '" cy="' + y(readings[readings.length - 1]).toFixed(1) + '"/>' +
+      '<line class="crosshair" id="crosshair" y1="' + padT + '" y2="' + (H - padB) + '"/>' +
+      '<rect class="hover-target" x="' + padL + '" y="0" width="' + (W - padL - padR) + '" height="' + H + '" id="hoverTarget"/>' +
+      '</svg>' +
+      '<div class="tooltip" id="tooltip"></div>';
+
+    host.innerHTML = svg;
+
+    var svgEl = host.querySelector("svg");
+    var hoverTarget = document.getElementById("hoverTarget");
+    var crosshair = document.getElementById("crosshair");
+    var tooltip = document.getElementById("tooltip");
+
+    function nearest(px) {
+      var best = 0, bestDist = Infinity;
+      readings.forEach(function (r, i) {
+        var d = Math.abs(x(r) - px);
+        if (d < bestDist) { bestDist = d; best = i; }
+      });
+      return readings[best];
+    }
+
+    function moveTo(clientX) {
+      var rect = svgEl.getBoundingClientRect();
+      var scale = W / rect.width;
+      var px = (clientX - rect.left) * scale;
+      var r = nearest(px);
+      var cx = x(r);
+      crosshair.setAttribute("x1", cx); crosshair.setAttribute("x2", cx);
+      crosshair.style.opacity = 1;
+      tooltip.style.opacity = 1;
+      tooltip.textContent = r.watts.toFixed(1) + " W \u00b7 " + fmtDateTime(r.ts);
+      var leftPct = (cx / W) * 100;
+      tooltip.style.left = leftPct + "%";
+      tooltip.style.top = (y(r) / H) * 100 + "%";
+    }
+
+    hoverTarget.addEventListener("mousemove", function (evt) { moveTo(evt.clientX); });
+    hoverTarget.addEventListener("mouseleave", function () {
+      crosshair.style.opacity = 0;
+      tooltip.style.opacity = 0;
+    });
+    hoverTarget.addEventListener("touchstart", function (evt) { moveTo(evt.touches[0].clientX); }, { passive: true });
+    hoverTarget.addEventListener("touchmove", function (evt) { moveTo(evt.touches[0].clientX); }, { passive: true });
+  }
+
+  function loadData() {
+    refreshBtn.disabled = true;
+    syncMsg.classList.remove("error");
+    syncMsg.textContent = "Cargando datos en vivo desde GitHub\u2026";
+
+    fetch(CSV_URL, { cache: "no-store" })
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.text();
+      })
+      .then(function (text) {
+        var readings = parseCSV(text);
+        if (!readings.length) throw new Error("el CSV vino vacio");
+        render(readings);
+        syncMsg.textContent = "Actualizado a las " + fmtNow() + " \u00b7 " + readings.length + " lecturas";
+      })
+      .catch(function (err) {
+        syncMsg.classList.add("error");
+        syncMsg.textContent = "No se pudo actualizar (" + err.message + "). Revisa tu conexion y prueba de nuevo.";
+      })
+      .then(function () {
+        refreshBtn.disabled = false;
+      });
+  }
+
+  refreshBtn.addEventListener("click", loadData);
+  loadData();
+})();
+</script>
+
+</body>
+</html>
