@@ -18,14 +18,14 @@ jobs:
           python-version: '3.10'
 
       - name: Instalar dependencias
-        run: pip install -r requisitos.txt
+        run: pip install -r requirements.txt
 
       - name: Ejecutar script de captura
         env:
           API_ID: ${{ secrets.TUYA_API_ID }}
           API_SECRET: ${{ secrets.TUYA_API_SECRET }}
           DEVICE_ID: ${{ secrets.TUYA_DEVICE_ID }}
-        run: python registrador.py
+        run: python logger.py
 
       - name: Guardar cambios en el CSV
         uses: stefanzweifel/git-auto-commit-action@v5
