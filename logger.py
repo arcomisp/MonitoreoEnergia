@@ -20,6 +20,7 @@ try:
 
   if status and "result" in status:
     dps_data = {item["code"]: item["value"] for item in status["result"]}
+    print(f"🔍 DEBUG - Todos los campos del dispositivo: {dps_data}")
     potencia = float(dps_data.get("cur_power", 0))
     timestamp = pd.Timestamp.now()
 
