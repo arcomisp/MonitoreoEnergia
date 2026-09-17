@@ -59,11 +59,36 @@ confirmar que el caso de uso (panel de monitoreo multi-usuario) califica
 para su plan comercial, y obtener una cotización real según usuarios
 proyectados.
 
+### Otros fabricantes: Sonoff / eWeLink
+
+Investigado el mismo día — Sonoff usa la plataforma **eWeLink** (de
+CoolKit Technologies), y el patrón comercial es casi idéntico al de Tuya:
+
+- **Plan "Personal Developer" (gratis)**: solo soporta login OAuth 2.0,
+  con una credencial de acceso válida por 1 año, documentación limitada,
+  una lista reducida de APIs, y sin soporte técnico.
+- **Plan "Enterprise Developer" (pago)**: requerido para uso comercial.
+  Más APIs, mejor estabilidad, soporte técnico y de negocio. Precio no
+  publicado — contactar a `bd@coolkit.cn`.
+- **OAuth 2.0 para multi-usuario** ya existe, igual que "Link App
+  Account" de Tuya.
+- **Alcance mayor**: eWeLink es la nube detrás de varias marcas de
+  enchufes inteligentes económicos, no solo Sonoff — soportar eWeLink
+  da acceso a varios fabricantes con una sola integración.
+
+**Conclusión**: ningún fabricante de IoT relevante tiene un plan
+gratuito que permita uso comercial — es su modelo de negocio. Soportar
+múltiples fabricantes (Tuya + eWeLink, y potencialmente más) aumenta el
+alcance de usuarios posibles, pero multiplica también los acuerdos
+comerciales y las integraciones a mantener.
+
 Fuentes: [Pricing — Tuya Developer Platform](https://developer.tuya.com/en/docs/iot/membership-service?id=K9m8k45jwvg9j),
 [Límites de frecuencia de API](https://developer.tuya.com/en/docs/iot/frequency-control?id=Kcojz2r2dg1f6),
 [Integración de terceros / Link App Account](https://developer.tuya.com/en/docs/iot/thirdparty-login-support?id=Kaiuyr8ey0k6u),
 [Flujo de autorización OAuth 2.0](https://developer.tuya.com/en/docs/iot/authorization-code-page-usage?id=Kdkyz44dz6a7r),
-[Pricing — Smart App SDK](https://developer.tuya.com/en/docs/app-development/app-sdk-price?id=Kbu0tcr2cbx3o).
+[Pricing — Smart App SDK](https://developer.tuya.com/en/docs/app-development/app-sdk-price?id=Kbu0tcr2cbx3o),
+[eWeLink Pricing](https://github.com/CoolKit-Technologies/eWeLink-API/blob/main/en/Pricing.md),
+[eWeLink CUBE Open API](https://ewelink.cc/ewelink-cube/introduce-open-api/).
 
 ## v2 — Camino a IA real (a futuro)
 
