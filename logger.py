@@ -17,13 +17,12 @@ try:
       apiRegion=API_REGION, apiKey=API_ID, apiSecret=API_SECRET
   )
   status = cloud.getstatus(DEVICE_ID)
-  properties = cloud.getproperties(DEVICE_ID)
-  print(f"🔍 DEBUG - Especificación del dispositivo (escalas/unidades): {properties}")
 
   if status and "result" in status:
     dps_data = {item["code"]: item["value"] for item in status["result"]}
-    print(f"🔍 DEBUG - Todos los campos del dispositivo: {dps_data}")
-    potencia = float(dps_data.get("cur_power", 0))
+    # El DP "cur_power" tiene scale=1 en la especificación del dispositivo
+    # (ver getproperties): el valor crudo se divide por 10 para obtener Watts.
+    potencia = float(dps_data.get("cur_power", 0)) / 10
     timestamp = pd.Timestamp.now()
 
     # Si ya existe el CSV lo abrimos, si no, creamos uno nuevo
