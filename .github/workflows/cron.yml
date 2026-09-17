@@ -22,9 +22,9 @@ jobs:
 
       - name: Ejecutar script de captura
         env:
-          API_ID: ${{ secrets.TUYA_API_ID }}
-          API_SECRET: ${{ secrets.TUYA_API_SECRET }}
-          DEVICE_ID: ${{ secrets.TUYA_DEVICE_ID }}
+          API_ID: ${{ secrets.API_ID }}
+          API_SECRET: ${{ secrets.API_SECRET }}
+          DEVICE_ID: ${{ secrets.DEVICE_ID }}
         run: python logger.py
 
       - name: Guardar cambios en el CSV
