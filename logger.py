@@ -17,6 +17,8 @@ try:
       apiRegion=API_REGION, apiKey=API_ID, apiSecret=API_SECRET
   )
   status = cloud.getstatus(DEVICE_ID)
+  properties = cloud.getproperties(DEVICE_ID)
+  print(f"🔍 DEBUG - Especificación del dispositivo (escalas/unidades): {properties}")
 
   if status and "result" in status:
     dps_data = {item["code"]: item["value"] for item in status["result"]}
