@@ -27,6 +27,9 @@
     --accent-soft: #a85a1e22;
     --accent-soft-strong: #a85a1e3d;
     --good: #3f7d4a;
+    --warn: #b3401f;
+    --warn-soft: #b3401f1a;
+    --warn-border: #b3401f4d;
     --shadow: 0 1px 2px rgba(36, 33, 27, 0.04), 0 8px 24px -12px rgba(36, 33, 27, 0.18);
   }
 
@@ -43,6 +46,9 @@
       --accent-soft: #e5a35a26;
       --accent-soft-strong: #e5a35a45;
       --good: #7fbf8a;
+      --warn: #ef8a72;
+      --warn-soft: #ef8a7226;
+      --warn-border: #ef8a7255;
       --shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
     }
   }
@@ -59,6 +65,9 @@
     --accent-soft: #e5a35a26;
     --accent-soft-strong: #e5a35a45;
     --good: #7fbf8a;
+    --warn: #ef8a72;
+    --warn-soft: #ef8a7226;
+    --warn-border: #ef8a7255;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
   }
 
@@ -240,6 +249,42 @@
     color: var(--ink-secondary);
   }
 
+  .anomaly-banner {
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--warn-soft);
+    border: 1px solid var(--warn-border);
+    color: var(--warn);
+    font-size: 0.84rem;
+    line-height: 1.4;
+  }
+
+  .insight-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .insight-value {
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0;
+  }
+
+  .insight-summary {
+    font-size: 0.86rem;
+    color: var(--ink-secondary);
+    line-height: 1.55;
+    margin: 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
   h2 {
     font-family: "Fraunces", Georgia, serif;
     font-size: 1.1rem;
@@ -402,6 +447,33 @@
       </div>
     </div>
     <p class="meta" id="heroMeta"></p>
+    <div class="anomaly-banner" id="anomalyBanner" hidden>
+      &#9888;&#65039; <span id="anomalyText"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Resumen e Insights</h2>
+    <p class="section-sub">Calculado automaticamente a partir de todo el historico.</p>
+    <div class="insight-grid">
+      <div>
+        <p class="eyebrow">Potencia promedio</p>
+        <p class="insight-value" id="insAvgPower">&mdash;</p>
+      </div>
+      <div>
+        <p class="eyebrow">Consumo total</p>
+        <p class="insight-value" id="insTotalKwh">&mdash;</p>
+      </div>
+      <div>
+        <p class="eyebrow">Promedio diario</p>
+        <p class="insight-value" id="insDailyKwh">&mdash;</p>
+      </div>
+      <div>
+        <p class="eyebrow">Proyeccion mensual</p>
+        <p class="insight-value" id="insMonthlyKwh">&mdash;</p>
+      </div>
+    </div>
+    <p class="insight-summary" id="insSummary"></p>
   </div>
 
   <div class="card">
@@ -471,6 +543,67 @@
     return new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   }
 
+  // Estadisticas simples (no ML): promedio/desvio para marcar lecturas
+  // fuera de rango (z-score), y una proyeccion lineal de consumo mensual
+  // a partir del ritmo diario observado en todo el historico.
+  var ANOMALY_Z_THRESHOLD = 2.5;
+
+  function computeInsights(readings) {
+    var n = readings.length;
+    var wattsArr = readings.map(function (r) { return r.watts; });
+    var mean = wattsArr.reduce(function (a, b) { return a + b; }, 0) / n;
+    var variance = wattsArr.reduce(function (a, b) { return a + (b - mean) * (b - mean); }, 0) / n;
+    var stddev = Math.sqrt(variance);
+    var min = Math.min.apply(null, wattsArr);
+    var max = Math.max.apply(null, wattsArr);
+
+    var first = readings[0], last = readings[n - 1];
+    var totalKwh = last.kwh - first.kwh;
+    var spanDays = Math.max((new Date(last.ts) - new Date(first.ts)) / 86400000, 1 / 24);
+    var dailyAvgKwh = totalKwh / spanDays;
+    var monthlyProjectionKwh = dailyAvgKwh * 30;
+
+    var anomalies = stddev > 0
+      ? readings.filter(function (r) { return Math.abs(r.watts - mean) / stddev > ANOMALY_Z_THRESHOLD; })
+      : [];
+    var lastIsAnomaly = stddev > 0 && Math.abs(last.watts - mean) / stddev > ANOMALY_Z_THRESHOLD;
+
+    return {
+      mean: mean, stddev: stddev, min: min, max: max,
+      totalKwh: totalKwh, spanDays: spanDays, dailyAvgKwh: dailyAvgKwh, monthlyProjectionKwh: monthlyProjectionKwh,
+      anomalies: anomalies, lastIsAnomaly: lastIsAnomaly
+    };
+  }
+
+  function renderInsights(readings) {
+    var s = computeInsights(readings);
+    var last = readings[readings.length - 1];
+
+    document.getElementById("insAvgPower").textContent = s.mean.toFixed(1) + " W";
+    document.getElementById("insTotalKwh").textContent = s.totalKwh.toFixed(2) + " kWh";
+    document.getElementById("insDailyKwh").textContent = s.dailyAvgKwh.toFixed(2) + " kWh";
+    document.getElementById("insMonthlyKwh").textContent = "~" + s.monthlyProjectionKwh.toFixed(0) + " kWh";
+
+    document.getElementById("insSummary").textContent =
+      "Con " + readings.length + " lecturas en " + s.spanDays.toFixed(1) + " dias, la potencia promedio fue " +
+      s.mean.toFixed(1) + " W (entre " + s.min.toFixed(0) + " y " + s.max.toFixed(0) + " W). " +
+      "Llevas " + s.totalKwh.toFixed(2) + " kWh acumulados a un ritmo de " + s.dailyAvgKwh.toFixed(2) +
+      " kWh/dia; si se mantiene, proyectas cerca de " + s.monthlyProjectionKwh.toFixed(0) + " kWh en 30 dias. " +
+      (s.anomalies.length > 0
+        ? "Se detectaron " + s.anomalies.length + " lectura(s) fuera de lo normal en el historico."
+        : "No se detectaron lecturas fuera de lo normal en el historico.");
+
+    var banner = document.getElementById("anomalyBanner");
+    if (s.lastIsAnomaly) {
+      document.getElementById("anomalyText").textContent =
+        "La ultima lectura (" + last.watts.toFixed(1) + " W) esta fuera de lo normal comparada con el promedio historico (" +
+        s.mean.toFixed(1) + " W). Podria valer la pena revisar el dispositivo.";
+      banner.hidden = false;
+    } else {
+      banner.hidden = true;
+    }
+  }
+
   function render(readings) {
     var last = readings[readings.length - 1];
     document.getElementById("heroValue").textContent = last.watts.toFixed(1);
@@ -478,6 +611,7 @@
     document.getElementById("heroMeta").textContent = "Registrado el " + fmtDateTime(last.ts) + " (tu hora local)";
     document.getElementById("historySub").textContent =
       readings.length + " lecturas, desde " + fmtDateTime(readings[0].ts) + " hasta " + fmtDateTime(last.ts) + ".";
+    renderInsights(readings);
 
     var tbody = document.getElementById("historyBody");
     tbody.innerHTML = "";
