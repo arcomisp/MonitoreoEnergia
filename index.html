@@ -285,31 +285,17 @@
     border-top: 1px solid var(--border);
   }
 
-  .anomaly-list {
-    list-style: none;
-    margin: 10px 0 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .anomaly-list li {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    font-size: 0.82rem;
-    padding: 6px 10px;
-    border-radius: 8px;
+  #anomalyBody tr {
     background: var(--warn-soft);
-    color: var(--ink-secondary);
   }
 
-  .anomaly-list .anomaly-value {
-    font-family: "IBM Plex Mono", monospace;
-    font-variant-numeric: tabular-nums;
+  #anomalyBody td:nth-child(3) {
     color: var(--warn);
-    font-weight: 600;
+  }
+
+  .no-anomalies {
+    font-size: 0.85rem;
+    color: var(--ink-secondary);
   }
 
   h2 {
@@ -507,7 +493,19 @@
       </div>
     </div>
     <p class="insight-summary" id="insSummary"></p>
-    <ul class="anomaly-list" id="anomalyList" hidden></ul>
+  </div>
+
+  <div class="card" id="anomalyCard" hidden>
+    <h2>Reporte de Anomalias</h2>
+    <p class="section-sub">Lecturas que se desvian mas de 2.5 desviaciones estandar del promedio historico.</p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Fecha y hora</th><th>Potencia (W)</th><th>Desvio</th></tr>
+        </thead>
+        <tbody id="anomalyBody"></tbody>
+      </table>
+    </div>
   </div>
 
   <div class="card">
@@ -637,22 +635,25 @@
       banner.hidden = true;
     }
 
-    var list = document.getElementById("anomalyList");
-    list.innerHTML = "";
+    var anomalyCard = document.getElementById("anomalyCard");
+    var anomalyBody = document.getElementById("anomalyBody");
+    anomalyBody.innerHTML = "";
     if (s.anomalies.length > 0) {
       s.anomalies.forEach(function (r) {
-        var li = document.createElement("li");
-        var label = document.createElement("span");
-        label.textContent = fmtDateTime(r.ts);
-        var value = document.createElement("span");
-        value.className = "anomaly-value";
-        value.textContent = r.watts.toFixed(1) + " W";
-        li.appendChild(label); li.appendChild(value);
-        list.appendChild(li);
+        var z = (r.watts - s.mean) / s.stddev;
+        var tr = document.createElement("tr");
+        var t1 = document.createElement("td");
+        t1.textContent = fmtDateTime(r.ts);
+        var t2 = document.createElement("td");
+        t2.textContent = r.watts.toFixed(1);
+        var t3 = document.createElement("td");
+        t3.textContent = (z > 0 ? "+" : "") + z.toFixed(1) + "σ";
+        tr.appendChild(t1); tr.appendChild(t2); tr.appendChild(t3);
+        anomalyBody.appendChild(tr);
       });
-      list.hidden = false;
+      anomalyCard.hidden = false;
     } else {
-      list.hidden = true;
+      anomalyCard.hidden = true;
     }
 
     return s;
