@@ -285,6 +285,33 @@
     border-top: 1px solid var(--border);
   }
 
+  .anomaly-list {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .anomaly-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.82rem;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--warn-soft);
+    color: var(--ink-secondary);
+  }
+
+  .anomaly-list .anomaly-value {
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    color: var(--warn);
+    font-weight: 600;
+  }
+
   h2 {
     font-family: "Fraunces", Georgia, serif;
     font-size: 1.1rem;
@@ -335,6 +362,12 @@
 
   .endpoint {
     fill: var(--accent);
+    stroke: var(--surface);
+    stroke-width: 2;
+  }
+
+  .anomaly-point {
+    fill: var(--warn);
     stroke: var(--surface);
     stroke-width: 2;
   }
@@ -474,6 +507,7 @@
       </div>
     </div>
     <p class="insight-summary" id="insSummary"></p>
+    <ul class="anomaly-list" id="anomalyList" hidden></ul>
   </div>
 
   <div class="card">
@@ -602,6 +636,26 @@
     } else {
       banner.hidden = true;
     }
+
+    var list = document.getElementById("anomalyList");
+    list.innerHTML = "";
+    if (s.anomalies.length > 0) {
+      s.anomalies.forEach(function (r) {
+        var li = document.createElement("li");
+        var label = document.createElement("span");
+        label.textContent = fmtDateTime(r.ts);
+        var value = document.createElement("span");
+        value.className = "anomaly-value";
+        value.textContent = r.watts.toFixed(1) + " W";
+        li.appendChild(label); li.appendChild(value);
+        list.appendChild(li);
+      });
+      list.hidden = false;
+    } else {
+      list.hidden = true;
+    }
+
+    return s;
   }
 
   function render(readings) {
@@ -611,7 +665,9 @@
     document.getElementById("heroMeta").textContent = "Registrado el " + fmtDateTime(last.ts) + " (tu hora local)";
     document.getElementById("historySub").textContent =
       readings.length + " lecturas, desde " + fmtDateTime(readings[0].ts) + " hasta " + fmtDateTime(last.ts) + ".";
-    renderInsights(readings);
+    var insights = renderInsights(readings);
+    var anomalySet = {};
+    insights.anomalies.forEach(function (r) { anomalySet[r.ts] = true; });
 
     var tbody = document.getElementById("historyBody");
     tbody.innerHTML = "";
@@ -676,6 +732,13 @@
       xLabels += '<text class="axis-label" x="' + x(r).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle">' + label + '</text>';
     }
 
+    var anomalyMarkers = readings
+      .filter(function (r) { return anomalySet[r.ts]; })
+      .map(function (r) {
+        return '<circle class="anomaly-point" r="4.5" cx="' + x(r).toFixed(1) + '" cy="' + y(r).toFixed(1) + '"/>';
+      })
+      .join("");
+
     var svg =
       '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Tendencia de potencia en vatios">' +
       '<defs><linearGradient id="areaFade" x1="0" y1="0" x2="0" y2="1">' +
@@ -685,6 +748,7 @@
       gridLines + axisLabelsY + xLabels +
       '<path class="trend-area" d="' + areaD + '"/>' +
       '<path class="trend-line" d="' + pathD + '"/>' +
+      anomalyMarkers +
       '<circle class="endpoint" r="4" cx="' + x(readings[readings.length - 1]).toFixed(1) + '" cy="' + y(readings[readings.length - 1]).toFixed(1) + '"/>' +
       '<line class="crosshair" id="crosshair" y1="' + padT + '" y2="' + (H - padB) + '"/>' +
       '<rect class="hover-target" x="' + padL + '" y="0" width="' + (W - padL - padR) + '" height="' + H + '" id="hoverTarget"/>' +
@@ -716,7 +780,7 @@
       crosshair.setAttribute("x1", cx); crosshair.setAttribute("x2", cx);
       crosshair.style.opacity = 1;
       tooltip.style.opacity = 1;
-      tooltip.textContent = r.watts.toFixed(1) + " W \u00b7 " + fmtDateTime(r.ts);
+      tooltip.textContent = (anomalySet[r.ts] ? "\u26a0\ufe0f " : "") + r.watts.toFixed(1) + " W \u00b7 " + fmtDateTime(r.ts);
       var leftPct = (cx / W) * 100;
       tooltip.style.left = leftPct + "%";
       tooltip.style.top = (y(r) / H) * 100 + "%";
