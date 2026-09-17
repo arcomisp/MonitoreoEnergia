@@ -497,7 +497,7 @@
 
   <div class="card" id="anomalyCard" hidden>
     <h2>Reporte de Anomalias</h2>
-    <p class="section-sub">Lecturas que se desvian mas de 2.5 desviaciones estandar del promedio historico.</p>
+    <p class="section-sub">Lecturas que se desvian mas de 2 desviaciones estandar del promedio historico.</p>
     <div class="table-scroll">
       <table>
         <thead>
@@ -578,7 +578,7 @@
   // Estadisticas simples (no ML): promedio/desvio para marcar lecturas
   // fuera de rango (z-score), y una proyeccion lineal de consumo mensual
   // a partir del ritmo diario observado en todo el historico.
-  var ANOMALY_Z_THRESHOLD = 2.5;
+  var ANOMALY_Z_THRESHOLD = 2.0;
 
   function computeInsights(readings) {
     var n = readings.length;
