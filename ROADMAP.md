@@ -4,6 +4,39 @@ Este documento registra el estado actual del proyecto y el plan a futuro
 para evolucionarlo de un sistema de monitoreo con heurísticas a un
 sistema que use modelos de IA/ML de verdad.
 
+## Principio guía: ser competitivos frente a Smart Life
+
+Cualquier feature nueva se mide contra esta pregunta: **¿esto compite con
+Smart Life, o lo complementa?** Tratar de igualar a Smart Life en control
+de dispositivos y amplitud de ecosistema es una batalla perdida — es de
+Tuya mismo, gratis, con años de desarrollo, y soporta cualquier
+dispositivo de su catálogo. Ahí no competimos.
+
+Los huecos reales donde sí hay ventaja posible:
+
+1. **Es genérica, no está pensada para energía.** Smart Life solo
+   muestra un dato suelto de kWh por dispositivo, sin análisis,
+   proyección, ni anomalías. Eso es exactamente lo que ya construimos
+   (Resumen e Insights, detección de anomalías, proyección mensual).
+2. **Es un jardín cerrado de un solo fabricante.** Solo dispositivos
+   Tuya. Nuestro panel, al ser propio, puede combinar datos de
+   cualquier fabricante (Tuya, eWeLink/Sonoff, otros) en un solo lugar.
+3. **No traduce a plata real.** Muestra kWh, no costo real según la
+   tarifa eléctrica del usuario (que en muchos países tiene tramos).
+4. **No compara ni da contexto.** Un número suelto no dice si es mucho
+   o poco; comparar contra el propio histórico, contra hogares
+   similares, o contra una meta, sí genera valor.
+5. **No es multi-propiedad ni multi-usuario con roles.** Compartir una
+   vista de solo lectura, o administrar varias propiedades, no es su
+   caso de uso.
+
+**Posicionamiento**: no reemplazamos a Smart Life, somos la capa de
+inteligencia energética que corre *sobre* lo que el usuario ya tiene
+instalado (incluso si es Smart Life). El pitch: *Smart Life te dice qué
+hace cada dispositivo; nosotros te decimos qué significa eso para tu
+bolsillo — a través de dispositivos y marcas, con análisis real, no
+solo el número crudo.*
+
 ## v1 — Estado actual (completado)
 
 La base de datos y el pipeline sobre el cual construir una IA energética.
@@ -192,6 +225,82 @@ Fuentes: [Membership and fees — Tuya Support](https://support.tuya.com/en/help
 5. **Métrica de éxito**: el modelo nuevo solo se adopta si mejora
    objetivamente al baseline de heurísticas actual (menos falsos
    positivos en anomalías, menor error de predicción de consumo).
+
+## Hardware: medición por circuito (totalizador + submedidores)
+
+En vez de inferir con IA qué aparato consume qué (NILM, un problema de
+investigación difícil y poco confiable), medir cada circuito por
+separado con hardware real — el enfoque de los mejores productos
+comerciales de monitoreo energético del hogar.
+
+**Arquitectura propuesta:**
+- 1 medidor totalizador en el breaker principal del panel (mide todo
+  el apartamento)
+- N medidores por circuito individual (cocina, iluminación, aire
+  acondicionado, etc.)
+- Validación cruzada automática: si la suma de los circuitos no
+  coincide con el totalizador, hay un circuito sin instrumentar o un
+  sensor fallando
+
+**Productos Tuya-compatibles encontrados (17-sep-2026):**
+- Medidor multi-circuito "todo en uno" (OWON): 2 pinzas CT de 200A para
+  el totalizador + 2 pinzas CT de 50A para 2 circuitos, en un solo
+  dispositivo
+- Medidores individuales de pinza única (80A) — uno por circuito,
+  varios fabricantes
+- Totalizador trifásico (si el panel es trifásico): Zemismart SDM01,
+  hasta 120A, 3 pinzas CT
+
+**Consideraciones antes de instalar:**
+1. Requiere abrir el panel eléctrico e instalar pinzas CT en cada
+   circuito — normalmente necesita un electricista (trabajar dentro de
+   un panel con corriente viva no es para hacerlo uno mismo).
+2. Costo estimado: ~US$20-50 por medidor según el amperaje de la pinza;
+   para un apartamento con 6-8 circuitos + totalizador, ~US$200-400 en
+   hardware, más instalación.
+3. Cambio de software necesario: `logger.py` hoy solo lee un
+   dispositivo Tuya. Habría que rediseñarlo para leer una lista de
+   dispositivos (cada uno con su circuito/nombre), guardar los datos
+   con una columna de "circuito", y agregar una vista de desglose por
+   circuito en el panel.
+
+Fuentes: [Medidor multi-circuito (OWON)](https://www.owon-smart.com/tuya-wifi-split-phase-us-multi-circuit-power-meter-2-main-200a-ct-2-sub-50a-ct-product/),
+[DIN rail dual CT (OWON PC472)](https://www.owon-smart.com/tuya-wi-fi-single-phase-power-meter-2-clamp-pc-472-product/),
+[Medidor trifásico Zemismart](https://www.zemismart.com/products/sdm01-tw0-12-zm).
+
+## Automatización eficiente de aires acondicionados
+
+Objetivo: minimizar el consumo de los AC sin sacrificar confort — no con
+magia, con un plan por etapas honesto sobre qué es heurística y qué es
+IA real.
+
+**Nota técnica importante**: cortar la corriente del circuito de golpe
+(con un medidor+relé) no es ideal para un AC — puede acortar la vida
+del compresor o hacer que el equipo "olvide" su configuración. La forma
+correcta es enviar el comando real de apagado/temperatura por IR
+(como ya permite el dispositivo "AC Companion-WiFi IR Switch" que
+tenemos), simulando el control remoto real del fabricante.
+
+**Etapa 1 — Reglas simples, sin hardware nuevo:**
+- Usar el companion IR para ajustar la temperatura objetivo (24-25°C
+  es mucho más eficiente que 18°C) en vez de cortar la corriente
+- Inferir ocupación de forma aproximada a partir del consumo base de
+  otros circuitos (luces, enchufes) — si está en su nivel base por
+  varias horas, asumir que no hay nadie
+- Evitar encendidos/apagados frecuentes (el arranque en frío del
+  compresor es lo menos eficiente)
+- Implementación: un script que use `cloud.sendcommand()` de tinytuya
+  (misma librería que ya usamos para leer) según estas reglas
+
+**Etapa 2 — Sensor de temperatura/humedad real (~US$10-15, sin
+instalación eléctrica):** medir confort de verdad en vez de inferirlo,
+y afinar mucho mejor las reglas de la Etapa 1.
+
+**Etapa 3 — Optimización real con IA (a futuro):** con suficiente
+historia de temperatura + ocupación + consumo, entrenar un modelo que
+aprenda el punto óptimo específico del apartamento (cuánto tarda en
+enfriar, cuánto se calienta cuando el AC está apagado, etc.) — ahí sí
+es aprendizaje real, no reglas fijas.
 
 ## Ideas descartadas / pendientes de decisión
 
