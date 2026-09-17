@@ -37,7 +37,10 @@ for log in logs:
     if log.get("code") != "cur_power":
         continue
     try:
-        potencia = float(log["value"])
+        # El DP "cur_power" tiene scale=1 en la especificación del
+        # dispositivo (ver getproperties): el valor crudo se divide por
+        # 10 para obtener Watts.
+        potencia = float(log["value"]) / 10
     except (TypeError, ValueError):
         continue
     timestamp = pd.to_datetime(int(log["event_time"]), unit="ms")
