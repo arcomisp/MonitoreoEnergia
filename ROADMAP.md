@@ -90,6 +90,50 @@ Fuentes: [Pricing — Tuya Developer Platform](https://developer.tuya.com/en/doc
 [eWeLink Pricing](https://github.com/CoolKit-Technologies/eWeLink-API/blob/main/en/Pricing.md),
 [eWeLink CUBE Open API](https://ewelink.cc/ewelink-cube/introduce-open-api/).
 
+### Alternativa: tener nuestra propia nube de IoT
+
+En vez de depender 100% de los planes comerciales de Tuya/eWeLink, hay
+tres caminos posibles, de menor a mayor independencia (y de menor a
+mayor esfuerzo):
+
+**Opción A — Control local, sin pasar por la nube del fabricante.**
+Muchos dispositivos Tuya (y derivados) permiten control local en la red
+propia, sin pasar por los servidores de Tuya (ej. `localtuya` de Home
+Assistant). Se extrae una "local key" una sola vez con la app oficial y
+después se controla el dispositivo directo por WiFi local.
+- Sin límites de API ni tarifas por dispositivo.
+- Zona gris legal para un producto comercial: se sigue usando hardware
+  de Tuya, y extraer/usar la local key a escala para vender un servicio
+  podría chocar con sus términos; Tuya puede cambiar el protocolo local
+  cuando quiera.
+
+**Opción B — Hardware propio con firmware abierto (independencia real).**
+Muchos enchufes inteligentes "Tuya" usan chips ESP8266/ESP32 genéricos
+por dentro, reflasheables con firmware abierto (Tasmota, ESPHome, vía
+`tuya-convert`) que habla directo con un servidor MQTT propio — cero
+dependencia de Tuya, eWeLink, ni nadie.
+- 100% propio: sin cuotas, sin ToS de terceros, dueño total de los datos.
+- Esfuerzo grande: hay que flashear cada dispositivo (o conseguir
+  hardware ya compatible), armar el propio broker MQTT + backend, y
+  hacerse cargo de actualizaciones de firmware/seguridad — se pasa de
+  "usar una nube" a "operar una".
+
+**Opción C — Nube propia de "inteligencia", usando Tuya/eWeLink solo
+como capa de datos.** El camino intermedio, y hacia donde ya venimos
+yendo en la práctica: pagar el plan comercial de Tuya/eWeLink (Fase 0)
+solo para la comunicación con el dispositivo, pero todo lo demás (base
+de datos, backend, dashboard, modelos de IA) es propio. El usuario final
+no sabe ni le importa qué nube de dispositivo hay detrás.
+- Mucho menos esfuerzo que la Opción B, control total sobre la
+  experiencia y los datos.
+- Se sigue dependiendo de que Tuya/eWeLink no suban precios o cambien
+  reglas.
+
+**Recomendación**: arrancar con la Opción C. Si el proyecto crece mucho
+y los costos de Tuya/eWeLink se vuelven un problema real, evaluar la
+Opción B — no como punto de partida, porque implica mucho hardware y
+operación antes de validar si el negocio funciona.
+
 ## v2 — Camino a IA real (a futuro)
 
 1. **Más historia**: acumular semanas/meses de datos para que un modelo
